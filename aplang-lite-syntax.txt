@@ -1,0 +1,47 @@
+program        → use_decl* declaration* EOF ;
+
+declaration    → class_decl | fun_decl | var_decl ;
+
+visibility     → "pub"? ;
+
+class_decl     → visibility "class" IDENTIFIER (":" type ("," type)*)? "{" use_decl* declaration* "}" ;
+fun_decl       → visibility "fn" IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
+var_decl       → visibility "var" IDENTIFIER ( ":" type )? ( "=" expression )? ";" ;
+use_decl       → "use" IDENTIFIER ( "." IDENTIFIER)* ("." "*")? ";" ;
+
+statement      → for_stmt  | if_stmt | return_stmt | while_stmt | do_while | block | var_stmt | exp_stmt ;
+for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
+if_stmt        → "if"  "(" expression  ")" statement ( "else" statement )? ;
+return_stmt    → "return" expression? ";" ;
+break_stmt     → "break" expression ";" ;
+while_stmt     → "while" "(" expression ")" statement ;
+var_stmt       → "var" IDENTIFIER ( ":" type )? ( "=" expression ) ";" ;
+exp_stmt       → expression ";" ;
+
+expression     → assignment ;
+assignment     → call ( "+" | "-" | "*" | "**" | "/" | "&" | "|" | "<<" | ">>" | ">>>" | "^")
+                 "=" assignment | logic_or ;
+logic_or       → logic_and   (   "||" logic_and                       )* ;
+logic_and      → equality    (   "&&" equality                        )* ;
+equality       → comparison  ( ( "!=" | "=="              ) comparison)* ;
+comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term      )* ;
+term           → factor      ( ( "-"  | "+"               ) factor    )* ;
+factor         → bit_op      ( ( "/"  | "*"  | "**"       ) bit_op    )* ;
+bit_op         → unary_left  ( ( "|"  | "^"  | "&"        ) unary_left)* ;
+unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
+call           → primary arguments? ( "." IDENTIFIER (arguments | array_clause )* ;
+
+primary        → LITERAL | "this" | "super" | IDENTIFIER | "(" expression ")" ;
+
+parameters     → IDENTIFIER ":" type ( "," IDENTIFIER ":" type)* ;
+arguments      → "(" expression ( "," expression )* ")" ;
+block          → "{" (var_decl | statement)* "}" ;
+
+type           → array_type ;
+array_type     → path ( "[" NUMBER "]" )*;
+
+path           → IDENTIFIER ( "." IDENTIFIER)* ;
+LITERAL        → "null" | NUMBER | STRING | CHAR ;
+NUMBER         → "0"-"9" ("." "0"-"9")? ;
+array_clause   → "[" expression "]" ;
+
