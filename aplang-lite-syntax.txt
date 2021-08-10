@@ -2,11 +2,9 @@ program        → use_decl* declaration* EOF ;
 
 declaration    → class_decl | fun_decl | var_decl ;
 
-visibility     → "pub"? ;
-
-class_decl     → visibility "class" IDENTIFIER (":" type ("," type)*)? "{" use_decl* declaration* "}" ;
-fun_decl       → visibility "fn" IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
-var_decl       → visibility "var" IDENTIFIER ( ":" type )? ( "=" expression )? ";" ;
+class_decl     → "class" IDENTIFIER (":" type ("," type)*)? "{" use_decl* declaration* "}" ;
+fun_decl       → "fn" IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
+var_decl       → "var" IDENTIFIER ( ":" type )? ( "=" expression )? ";" ;
 use_decl       → "use" IDENTIFIER ( "." IDENTIFIER)* ("." "*")? ";" ;
 
 statement      → for_stmt  | if_stmt | return_stmt | while_stmt | do_while | block | var_stmt | exp_stmt ;
@@ -41,7 +39,8 @@ type           → array_type ;
 array_type     → path ( "[" NUMBER "]" )*;
 
 path           → IDENTIFIER ( "." IDENTIFIER)* ;
-LITERAL        → "null" | NUMBER | STRING | CHAR ;
-NUMBER         → "0"-"9" ("." "0"-"9")? ;
 array_clause   → "[" expression "]" ;
+
+LITERAL        → "null" | NUMBER | STRING | CHAR ;
+NUMBER         → ("0x"+ )"0"-"9" ("." "0"-"9")? ;
 
