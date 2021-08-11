@@ -3,13 +3,12 @@ program        → use_decl* declaration* EOF ;
 declaration    → class_decl | fun_decl | var_decl ;
 
 class_decl     → "class" IDENTIFIER (":" type ("," type)*)? "{" use_decl* declaration* "}" ;
-fun_decl       → "fn" IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
-var_decl       → "var" IDENTIFIER ( ":" type )? ( "=" expression )? ";" ;
-use_decl       → "use" IDENTIFIER ( "." IDENTIFIER)* ("." "*")? ";" ;
+fun_decl       → "fn"  IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
+var_decl       → "var" IDENTIFIER  ( ":" type      )? ( "=" expression )? "\n" ;
+use_decl       → "use" IDENTIFIER  ( "." IDENTIFIER)* ( "." "*" | "as" IDENTIFIER)? "\n" ;
 
-statement      → for_stmt  | if_stmt | return_stmt | while_stmt | do_while | block | var_stmt | exp_stmt ;
+statement      → for_stmt | return_stmt | while_stmt | block | var_stmt | exp_stmt ;
 for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
-if_stmt        → "if"  "(" expression  ")" statement ( "else" statement )? ;
 return_stmt    → "return" expression? ";" ;
 break_stmt     → "break" expression ";" ;
 while_stmt     → "while" "(" expression ")" statement ;
@@ -18,14 +17,15 @@ exp_stmt       → expression ";" ;
 
 expression     → assignment ;
 assignment     → call ( "+" | "-" | "*" | "**" | "/" | "&" | "|" | "<<" | ">>" | ">>>" | "^")
-                 "=" assignment | logic_or ;
-logic_or       → logic_and   (   "||" logic_and                       )* ;
-logic_and      → equality    (   "&&" equality                        )* ;
-equality       → comparison  ( ( "!=" | "=="              ) comparison)* ;
-comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term      )* ;
-term           → factor      ( ( "-"  | "+"               ) factor    )* ;
-factor         → bit_op      ( ( "/"  | "*"  | "**"       ) bit_op    )* ;
-bit_op         → unary_left  ( ( "|"  | "^"  | "&"        ) unary_left)* ;
+                 "=" assignment | if_expr ;
+if_expr        → "if"  "(" expression  ")" statement ( "else" statement )? ;
+logic_or       → logic_and   (   "||" logic_and                         )* ;
+logic_and      → equality    (   "&&" equality                          )* ;
+equality       → comparison  ( ( "!=" | "=="              ) comparison  )* ;
+comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term        )* ;
+term           → factor      ( ( "-"  | "+"               ) factor      )* ;
+factor         → bit_op      ( ( "/"  | "*"  | "**"       ) bit_op      )* ;
+bit_op         → unary_left  ( ( "|"  | "^"  | "&"        ) unary_left  )* ;
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
 call           → primary arguments? ( "." IDENTIFIER (arguments | array_clause )* ;
 
@@ -35,8 +35,7 @@ parameters     → IDENTIFIER ":" type ( "," IDENTIFIER ":" type)* ;
 arguments      → "(" expression ( "," expression )* ")" ;
 block          → "{" (var_decl | statement)* "}" ;
 
-type           → array_type ;
-array_type     → path ( "[" NUMBER "]" )*;
+type           → path ; // Generics ??
 
 path           → IDENTIFIER ( "." IDENTIFIER)* ;
 array_clause   → "[" expression "]" ;
