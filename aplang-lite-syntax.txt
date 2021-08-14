@@ -1,19 +1,19 @@
-program        → use_decl* declaration* EOF ;
+program        → use_decl* declaration* ;
 
 declaration    → class_decl | fun_decl | var_decl ;
 
-class_decl     → "class" IDENTIFIER (":" type ("," type)*)? "{" use_decl* declaration* "}" ;
-fun_decl       → "fn"  IDENTIFIER "(" parameters? ")" ( ":" type )? block ;
+class_decl     → "class" IDENTIFIER (":" type ("," type)*)? "{" program "}" ;
+fun_decl       → "fn"  IDENTIFIER "(" ( IDENTIFIER ":" type ( "," IDENTIFIER ":" type)* )? ")" ( ":" type )? block ;
 var_decl       → "var" IDENTIFIER  ( ":" type      )? ( "=" expression )? "\n" ;
 use_decl       → "use" IDENTIFIER  ( "." IDENTIFIER)* ( "." "*" | "as" IDENTIFIER)? "\n" ;
 
 statement      → for_stmt | return_stmt | while_stmt | block | var_stmt | exp_stmt ;
 for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
-return_stmt    → "return" expression? ";" ;
-break_stmt     → "break" expression ";" ;
+return_stmt    → "return" expression? "\n" ;
+break_stmt     → "break" "\n" ;
 while_stmt     → "while" "(" expression ")" statement ;
-var_stmt       → "var" IDENTIFIER ( ":" type )? ( "=" expression ) ";" ;
-exp_stmt       → expression ";" ;
+var_stmt       → var_decl ;
+exp_stmt       → expression "\n" ;
 
 expression     → assignment ;
 assignment     → call ( "+" | "-" | "*" | "**" | "/" | "&" | "|" | "<<" | ">>" | ">>>" | "^")
@@ -31,7 +31,6 @@ call           → primary arguments? ( "." IDENTIFIER (arguments | array_clause
 
 primary        → LITERAL | "this" | "super" | IDENTIFIER | "(" expression ")" ;
 
-parameters     → IDENTIFIER ":" type ( "," IDENTIFIER ":" type)* ;
 arguments      → "(" expression ( "," expression )* ")" ;
 block          → "{" (var_decl | statement)* "}" ;
 
