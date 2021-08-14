@@ -7,12 +7,11 @@ fun_decl       → "fn"  IDENTIFIER "(" ( IDENTIFIER ":" type ( "," IDENTIFIER "
 var_decl       → "var" IDENTIFIER  ( ":" type      )? ( "=" expression )? "\n" ;
 use_decl       → "use" IDENTIFIER  ( "." IDENTIFIER)* ( "." "*" | "as" IDENTIFIER)? "\n" ;
 
-statement      → for_stmt | return_stmt | while_stmt | block | var_stmt | exp_stmt ;
+statement      → for_stmt | return_stmt | break_stmt | while_stmt | var_decl | block | exp_stmt ;
 for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
 return_stmt    → "return" expression? "\n" ;
 break_stmt     → "break" "\n" ;
 while_stmt     → "while" "(" expression ")" statement ;
-var_stmt       → var_decl ;
 exp_stmt       → expression "\n" ;
 
 expression     → assignment ;
