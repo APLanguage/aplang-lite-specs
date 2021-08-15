@@ -27,18 +27,18 @@ term           → factor      ( ( "-"  | "+"               ) factor            
 factor         → bit_op      ( ( "/"  | "*"  | "**" | "%" ) bit_op                     )* ;
 bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) unary_left )* ;
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
-call           → primary (arguments | array_clause )?
-               ( "." IDENTIFIER (arguments | array_clause )* ;
+call           → primary invocation? ( "." IDENTIFIER invocation* ;
 
 primary        → LITERAL | "this" | "super" | IDENTIFIER | "(" expression ")" ;
 
-arguments      → "(" expression ( "," expression )* ")" ;
 block          → "{" (var_decl | statement)* "}" ;
 
 type           → path ; // Generics ??
 
 path           → IDENTIFIER ( "." IDENTIFIER)* ;
-array_clause   → "[" expression "]" ;
+
+invocation     → "(" (expression ( "," expression )*)? ")"
+               | "[" expression "]"
 
 LITERAL        → "null" | NUMBER | STRING | CHAR ;
 NUMBER         → #"0x[0-9a-fA-F]+" | #"0b[0-1]+" | #"[0-9]+(?:\.[0-9]+)" ;
