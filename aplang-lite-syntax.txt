@@ -18,14 +18,14 @@ exp_stmt       → expression "\n" ;
 expression     → assignment ;
 assignment     → call ( "+=" | "-=" | "*=" | "**=" | "/=" | "%=" | "&=" | "|=" | "^=" | "~=" | "<<=" | ">>=" | ">>>=" | "=")
                  assignment | if_expr ;
-if_expr        → "if" "(" expression  ")" expression ( "else" expression)  ;
-logic_or       → logic_and   (   "||" logic_and                         )* ;
-logic_and      → equality    (   "&&" equality                          )* ;
-equality       → comparison  ( ( "!=" | "=="              ) comparison  )* ;
-comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term        )* ;
-term           → factor      ( ( "-"  | "+"               ) factor      )* ;
-factor         → bit_op      ( ( "/"  | "*"  | "**"       ) bit_op      )* ;
-bit_op         → unary_left  ( ( "|"  | "^"  | "&"        ) unary_left  )* ;
+if_expr        → "if" "(" expression  ")" expression ( "else" expression               )  ;
+logic_or       → logic_and   (   "||" logic_and                                        )* ;
+logic_and      → equality    (   "&&" equality                                         )* ;
+equality       → comparison  ( ( "!=" | "=="              ) comparison                 )* ;
+comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term                       )* ;
+term           → factor      ( ( "-"  | "+"               ) factor                     )* ;
+factor         → bit_op      ( ( "/"  | "*"  | "**" | "%" ) bit_op                     )* ;
+bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) unary_left )* ;
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
 call           → primary arguments? ( "." IDENTIFIER (arguments | array_clause )* ;
 
