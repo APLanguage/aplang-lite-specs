@@ -18,7 +18,7 @@ exp_stmt       → expression "\n" ;
 expression     → assignment ;
 assignment     → call ( "+=" | "-=" | "*=" | "**=" | "/=" | "%=" | "&=" | "|=" | "^=" | "~=" | "<<=" | ">>=" | ">>>=" | "=")
                  assignment | if_expr ;
-if_expr        → "if" "(" expression  ")" expression ( "else" expression)? ;
+if_expr        → "if" "(" expression  ")" expression ( "else" expression)  ;
 logic_or       → logic_and   (   "||" logic_and                         )* ;
 logic_and      → equality    (   "&&" equality                          )* ;
 equality       → comparison  ( ( "!=" | "=="              ) comparison  )* ;
