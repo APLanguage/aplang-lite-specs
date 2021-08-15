@@ -7,17 +7,18 @@ fun_decl       → "fn"  IDENTIFIER "(" ( IDENTIFIER ":" type ( "," IDENTIFIER "
 var_decl       → "var" IDENTIFIER  ( ":" type      )? ( "=" expression )? "\n" ;
 use_decl       → "use" IDENTIFIER  ( "." IDENTIFIER)* ( "." "*" | "as" IDENTIFIER)? "\n" ;
 
-statement      → for_stmt | return_stmt | break_stmt | while_stmt | var_decl | block | exp_stmt ;
+statement      → for_stmt | return_stmt | break_stmt | while_stmt | var_decl | if_stmt | block | exp_stmt ;
 for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
 return_stmt    → "return" expression? "\n" ;
 break_stmt     → "break" "\n" ;
 while_stmt     → "while" "(" expression ")" statement ;
+if_stmt        → "if"  "(" expression  ")" statement ( "else" statement )? ;
 exp_stmt       → expression "\n" ;
 
 expression     → assignment ;
-assignment     → call ( "+" | "-" | "*" | "**" | "/" | "&" | "|" | "<<" | ">>" | ">>>" | "^")
-                 "=" assignment | if_expr ;
-if_expr        → "if"  "(" expression  ")" statement ( "else" statement )? ;
+assignment     → call ( "+=" | "-=" | "*=" | "**=" | "/=" | "%=" | "&=" | "|=" | "^=" | "~=" | "<<=" | ">>=" | ">>>=" | "=")
+                 assignment | if_expr ;
+if_expr        → "if" "(" expression  ")" expression ( "else" expression)? ;
 logic_or       → logic_and   (   "||" logic_and                         )* ;
 logic_and      → equality    (   "&&" equality                          )* ;
 equality       → comparison  ( ( "!=" | "=="              ) comparison  )* ;
