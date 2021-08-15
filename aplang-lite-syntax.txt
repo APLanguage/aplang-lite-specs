@@ -27,7 +27,8 @@ term           → factor      ( ( "-"  | "+"               ) factor            
 factor         → bit_op      ( ( "/"  | "*"  | "**" | "%" ) bit_op                     )* ;
 bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) unary_left )* ;
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
-call           → primary arguments? ( "." IDENTIFIER (arguments | array_clause )* ;
+call           → primary (arguments | array_clause )?
+               ( "." IDENTIFIER (arguments | array_clause )* ;
 
 primary        → LITERAL | "this" | "super" | IDENTIFIER | "(" expression ")" ;
 
