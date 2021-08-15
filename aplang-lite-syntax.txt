@@ -29,7 +29,7 @@ bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) un
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
 call           → primary invocation? ( "." IDENTIFIER invocation* ;
 
-primary        → LITERAL | "this" | "super" | IDENTIFIER | "(" expression ")" ;
+primary        → LITERAL | VALUE_TOKEN | IDENTIFIER | "(" expression ")" ;
 
 block          → "{" (var_decl | statement)* "}" ;
 
@@ -40,6 +40,7 @@ path           → IDENTIFIER ( "." IDENTIFIER)* ;
 invocation     → "(" (expression ( "," expression )*)? ")"
                | "[" expression "]"
 
-LITERAL        → "null" | NUMBER | STRING | CHAR ;
+VALUE_TOKEN    → "null" | "this" | "super"
+LITERAL        → NUMBER | STRING | CHAR ;
 NUMBER         → #"0x[0-9a-fA-F]+" | #"0b[0-1]+" | #"[0-9]+(?:\.[0-9]+)" ;
 
