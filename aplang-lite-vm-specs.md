@@ -6,6 +6,10 @@ Index:
 
 ## Modules and Packages
 
+## VM
+  - 2^8  (256)    Registers per Frame
+  - 2^16 (65,536) Bytes per Code block (method/field init)
+
 ## Class File
 
 ```
@@ -42,8 +46,7 @@ field_info {
   u1             name_len;
   char           name[name_len];
   type           type;
-  u4             code_length;
-  u1             code[code_length]
+  
 }
 ```
 ```
@@ -57,89 +60,95 @@ method_info {
   u1             code[code_length]
 }
 ```
+```
+type {
+
+}
+```
 
 ## Bytecode and Operations
 
 ### Code Flow
 
-#### CALL
-PPPP MDWW XXXX XXXX
+#### CALL (Methods & Fields)
+PPPP MDW- XXXX XXXX
 P: Instruction Id
+-: General purpose bit, VM must ignore them.
 M: Virtual(0)/Static(1)
 X: Index in the Reference Pool
-WW: Amount of next bytes which be also used for index (up to 3, total up to 4).
+W: Amount of next byte extends the index to 16-bit using next byte.
 D: If result will be ignored/poped.
 Stack:
   Virtual:
-    ..., object ref, [arg1, [arg2, ...]] -> ...
+    ..., object ref, [arg1, [arg2, ...]] -> ..., [value]
   Static:
-    ..., [arg1, [arg2, ...]] -> ...  
+    ..., [arg1, [arg2, ...]] -> ..., [value]
 
 #### RETURN
+PPPP T--- XXXX XXXX
+-: General purpose bits, VM must ignore them.
+If the function returns a value:
+  T: Stack(0)/Register(1)
+  X: If T set, this is the index of the register to return.
+If T == 0 or function has no return value, X can be used for general purpose and must be ignored by the VM.
 
 #### IF
 
 PPPP CCCW XXXX XXXX
 P: Instruction Id
 C: Condition
-X: Signed 8bit byte offset
+X: Signed 8-16bit location.
 W: If set, next byte is 
 ```
-001 ==
-010 !=
-011 >
-100 <
-101 >=
-110 <=
-111 boolean
+1 0 -1
+0 0 0 = NOP
+0 0 1 = <
+0 1 0 = ==
+0 1 1 = <=
+1 0 0 = >
+1 0 1 = !=
+1 1 0 = >=
+1 1 1 = unconditional jump
 ```
-> Note: If pops the value(s).
+> Note: If pops the value.
 
-#### GOTO
+### Unary
 
-PPPP WXXX XXXX XXXX
-P: Instruction Id
-X: Signed 12bit byte offset
-
-### Unary and Conversion
-
+#### Inversion
 PPPP M--- ---- ----
 P: Instruction Id
 M: Mode: Unary(0)/Conversion(1)
-Unary:
-  PPPP 0CSD ---- ----
-  C: Operation
-    0 - Negation
-    1 - Bitwise Negation
-  S: Source: Stack(0)/LocVar(1)
-  D: Destination: Stack(0)/LocVar(1)
-  W: Wide, if set 1 an next byte will determine the index of the LocVar
-  S == 0 && D == 0:
-    PPPP 0C00 ---- ----
-  S != D:
-    PPPP 0CSD WXXX XXXX
-    X: Index of the LocVar
-  S == 1 && D == 1:
-    PPPP 0C11 WXXX WXXX
-    A: Index of the Source LocVar
-    B: Index of the Destination LocVar
-    If W set for both, first next byte is for source and second next byte will be for destination
+PPPP 0SD- ---- ----
+S: Source: Stack(0)/LocVar(1)
+D: Destination: Stack(0)/LocVar(1)
+S == 0 && D == 0:
+  PPPP 000-
+S != D:
+  PPPP 0SDW XXXX XXXX
+  X: Index of the LocVar
+  W: Wide, if set, the next byte will extends the Index to 16bit index.
+S == 1 && D == 1:
+  PPPP 011W XXXX WXXX
+  A: Index of the Source LocVar
+  B: Index of the Destination LocVar
+  If W set for both, first next byte is for source and second next byte will be for destination
 
 > If S is stack, then the operand will be popped from the stack, if D is stack, the result will be pushed onto the stack.
 
-Conversion:
-  PPPP 1AAA BBBT WXXX
-  A/B:
-    000 - Signed byte
-    001 - Unsigned byte
-    010 - Signed Integer
-    011 - Unsigned Integer
-    100 - Signed Big Int
-    101 - Unsigned Big Int
-    110 - Floating Point
-    111 - Big Floating Point
-  T: Target: Stack(0)/LocVar(1)
-  If T set, W determines if the next byte is used for the index or XXX
+#### Conversion
+
+PPPP AAAT BBBW XXXX
+A/B:
+  000 - Signed byte
+  001 - Unsigned byte
+  010 - Signed Integer
+  011 - Unsigned Integer
+  100 - Signed Big Int
+  101 - Unsigned Big Int
+  110 - Floating Point
+  111 - Big Floating Point
+T: Target: Stack(0)/LocVar(1)
+If T set, W determines if the index is extended to 12 bit
 
 ### Math, Comparations and Equality
 
@@ -228,15 +237,18 @@ PPPP ----
 
 ## Overview
 
-NOP
-0000
-CALL, RETURN, IF,   GOTO
-0001  0010    0011  0100
-CONV
-0101
-MATH
-0110
-LOAD, STORE
-0111  1000
-PUSH, POP, DUP, SWAP
-1001  1010 1011 1100
+PPPP |  
+-----------------------
+0000 | ----           NOP
+0001 | MDWW XXXX XXXX CALL
+0010 | ---- ---- ---- RETU
+0011 | --WW XXXX XXXX GOTO
+0100 | M--- ---- ---- INV
+0101 | AAAT BBBW XXXX CONV
+0110 | XXXX XXAB TCCC MATH
+0111 | MTWW XXXX XXXX LORE
+1000 | DXXX           PUSH
+1001 | AABB           POP
+1010 | ----           DUP
+1011 | ----           SWAP
+
