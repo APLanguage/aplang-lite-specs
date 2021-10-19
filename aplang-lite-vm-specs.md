@@ -46,7 +46,21 @@ field_info {
   u1             name_len;
   char           name[name_len];
   type           type;
+  u1             info;
+ [ 
+  u4             code_length;
+  u1             code[code_length]
   
+  // or
+  
+  u4             index; // Constant Pool
+  
+  // or
+  
+  u1, u4, u8,
+  i1, i4, i8,
+  float, double  value;
+ ]
 }
 ```
 ```
@@ -62,9 +76,53 @@ method_info {
 ```
 ```
 type {
-
+  u1             type_id; 
+  [ // if object
+    u1             path_len
+    char           path[path_len]   
+  ]
 }
 ```
+type_id:
+  0 - Signed byte
+  1 - Unsigned byte
+  2 - Signed Integer
+  3 - Unsigned Integer
+  4 - Signed Big Int
+  5 - Unsigned Big Int
+  6 - Floating Point
+  7 - Big Floating Point
+  8 - Boolean
+  9 - Object
+```
+ref_info {
+  u1               ref_id;
+  u1               name_len
+  char             name[name_len]
+  [ u2             class_ref; // when class-attribute or classmethod ]
+  [ // when method
+    type           return_type;
+    u1             parameter_count;
+    type           parameters[parameter_count];
+  ]
+}
+```
+ref_id:
+  0 - classpath
+  1 - class-attribute
+  2 - class-method
+  3 - global-field
+  4 - global-method
+```
+cp_info {
+  u1               constant_type;
+  u4               bytes_len;
+  u1               bytes[bytes_len];
+}
+```
+constant_type:
+  0 - string
+  1 - encoded object
 
 ## Bytecode and Operations
 
@@ -98,10 +156,10 @@ PPPP CCCW XXXX XXXX
 P: Instruction Id
 C: Condition
 X: Signed 8-16bit location.
-W: If set, next byte is 
+W: If set, next byte expands the index from 8 to 16 bit.
 ```
 1 0 -1
-0 0 0 = NOP
+0 0 0 = NOP // TODO: find purpose
 0 0 1 = <
 0 1 0 = ==
 0 1 1 = <=
@@ -115,29 +173,18 @@ W: If set, next byte is
 ### Unary
 
 #### Inversion
-PPPP M--- ---- ----
+PPPP T-DD XXXX XXXX
 P: Instruction Id
-M: Mode: Unary(0)/Conversion(1)
-PPPP 0SD- ---- ----
-S: Source: Stack(0)/LocVar(1)
-D: Destination: Stack(0)/LocVar(1)
-S == 0 && D == 0:
-  PPPP 000-
-S != D:
-  PPPP 0SDW XXXX XXXX
-  X: Index of the LocVar
-  W: Wide, if set, the next byte will extends the Index to 16bit index.
-S == 1 && D == 1:
-  PPPP 011W XXXX WXXX
-  A: Index of the Source LocVar
-  B: Index of the Destination LocVar
-  If W set for both, first next byte is for source and second next byte will be for destination
-
-> If S is stack, then the operand will be popped from the stack, if D is stack, the result will be pushed onto the stack.
+T: Target: Stack(0)/Register(1)
+DD:
+  00 - byte
+  01 - int
+  10 - big int
+  11 - boolean // a boolean is a byte which has either 1 (true) or 0 (false) as value.
 
 #### Conversion
 
-PPPP AAAT BBBW XXXX
+PPPP TAAA BBB- ----
 A/B:
   000 - Signed byte
   001 - Unsigned byte
@@ -147,8 +194,7 @@ A/B:
   101 - Unsigned Big Int
   110 - Floating Point
   111 - Big Floating Point
-T: Target: Stack(0)/LocVar(1)
-If T set, W determines if the index is extended to 12 bit
+T: Target: Stack(0)/Register(1)
 
 ### Math, Comparations and Equality
 
@@ -162,25 +208,27 @@ C: Type (both operands must be same type): Same as A/B in Conversion, above.
 X can have the following values:
 
 ```
+// can be applied to ints & floats
 00000 OP_MTH : +
 00001 OP_MTH : -
 00010 OP_MTH : *
 00011 OP_MTH : **
 00100 OP_MTH : /
+// can only be applied to ints
 00101 OP_MTH : %
-
-01000 OP_BIT : |
-01001 OP_BIT : &
-01010 OP_BIT : ^
 01011 OP_BIT : >>
 01100 OP_BIT : <<
 01101 OP_BIT : >>>
-
+// can be applied to ints
+01000 OP_BIT : |
+01001 OP_BIT : &
+01010 OP_BIT : ^
+// can only be applied to ubyte (boolean are ubytes)
 10000 OP_LOG : ||
 10001 OP_LOG : &&
 10010 OP_EQ  : ==
 10011 OP_EQ  : !=
-
+// can be applied to ints & floats
 11000 OP_CMP : <
 11001 OP_CMP : <=
 11010 OP_CMP : >
@@ -191,14 +239,11 @@ X can have the following values:
 
 LOAD, STORE
 
-PPPP MTWW XXXX XXXX
+PPPP MT-- XXXX XXXX
 P: Instruction Id
 M: Mode : Load(0)/Store(1)
-T: Source/Destination: Local Variable/Register(0) or Reference Pool(1)
-WW: Amount of next bytes which be also used for index (up to 3, total up to 4).
-X:
-  When Local Var: Index in Register Pool
-  When Field: Index in the Reference Pool
+T: Source/Destination: Register(0) (X 8-bit) or Reference Pool(1) (X 16-bit)
+X: Index
 
 
 ### Stack
@@ -206,28 +251,30 @@ X:
 PUSH, POP, DUP, SWAP
 
 POP:
-  PPPP AABB
+  PPPP XXXX
   P: Instruction Id
-  A: First stack entry to pop
-  B: Second stack entry to pop
-  Note: To pop only 1 entry → A == B
+  XXXX + 1: Bytes to pop from stack.
 
 PUSH (for primitive Types, otherwise use LOAD):
-  PPPP DXXX
+  PPPP XXXX
   PPPP: Instruction Id
   D: If to push twice
-  XXX: Type
-    000 - Signed byte
-    001 - Unsigned byte
-    010 - Signed Integer
-    011 - Unsigned Integer
-    100 - Signed Big Int
-    101 - Unsigned Big Int
-    110 - Floating Point
-    111 - Big Floating Point
-  Next bytes in stream represent the value for this type.
+  XXX + 1: Bytes to push on the stack. 
+  Next bytes will be taken.
 
 DUP:
+  PPPP XXXX
+  PPPP: Instruction Id
+  XXXX + 1: Bytes to dup from the stack.
+
+  ..., bytes[XXXX + 1] -> ..., bytes[XXXX + 1], bytes[XXXX + 1]
+
+SWAP:
+  PPPP XXXX
+  PPPP: Instruction Id
+  XXXX + 1: Bytes to swap in stack.
+
+  ..., a_bytes[XXXX + 1], b_bytes[XXXX + 1] -> ..., b_bytes[XXXX + 1], a_bytes[XXXX + 1]
 
 ### Miscellaneous
 
@@ -247,8 +294,8 @@ PPPP |
 0101 | AAAT BBBW XXXX CONV
 0110 | XXXX XXAB TCCC MATH
 0111 | MTWW XXXX XXXX LORE
-1000 | DXXX           PUSH
-1001 | AABB           POP
-1010 | ----           DUP
-1011 | ----           SWAP
+1000 | PPPP XXXX      PUSH
+1001 | PPPP XXXX      POP
+1010 | PPPP XXXX      DUP
+1011 | PPPP XXXX      SWAP
 
