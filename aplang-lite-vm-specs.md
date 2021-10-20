@@ -129,10 +129,10 @@ constant_type:
 ### Code Flow
 
 #### CALL (Methods & Fields)
-PPPP MDW- XXXX XXXX
+PPPP SDW- XXXX XXXX
 P: Instruction Id
 -: General purpose bit, VM must ignore them.
-M: Virtual(0)/Static(1)
+S: Virtual(0)/Static(1)
 X: Index in the Reference Pool
 W: Amount of next byte extends the index to 16-bit using next byte.
 D: If result will be ignored/poped.
@@ -235,16 +235,16 @@ X can have the following values:
 11011 OP_CMP : >=
 ```
 
-### Registers/Local Variables and Fields
+### Load from/Store to Register
 
 LOAD, STORE
 
-PPPP MT-- XXXX XXXX
+PPPP M--- XXXX XXXX
 P: Instruction Id
 M: Mode : Load(0)/Store(1)
-T: Source/Destination: Register(0) (X 8-bit) or Reference Pool(1) (X 16-bit)
 X: Index
-
+Load: Takes from the register and push on the stack.
+Store: Takes from the stack and puts into a register
 
 ### Stack
 
@@ -287,15 +287,15 @@ PPPP ----
 PPPP |  
 -----------------------
 0000 | ----           NOP
-0001 | MDWW XXXX XXXX CALL
+0001 | SDW- XXXX XXXX CALL
 0010 | ---- ---- ---- RETU
-0011 | --WW XXXX XXXX GOTO
-0100 | M--- ---- ---- INV
+0011 | CCCW XXXX XXXX IF
+0100 | T-DD XXXX XXXX INV
 0101 | AAAT BBBW XXXX CONV
 0110 | XXXX XXAB TCCC MATH
-0111 | MTWW XXXX XXXX LORE
-1000 | PPPP XXXX      PUSH
-1001 | PPPP XXXX      POP
-1010 | PPPP XXXX      DUP
-1011 | PPPP XXXX      SWAP
+0111 | M--- XXXX XXXX LORE
+1000 | XXXX           PUSH
+1001 | XXXX           POP
+1010 | XXXX           DUP
+1011 | XXXX           SWAP
 
