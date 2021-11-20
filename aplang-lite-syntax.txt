@@ -27,6 +27,7 @@ term           → factor      ( ( "-"  | "+"               ) factor            
 factor         → bit_op      ( ( "/"  | "*"  | "**" | "%" ) bit_op                     )* ;
 bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) unary_left )* ;
 unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
+oop            → call ( "as" | "is" ) type;
 call           → primary invocation? ( invocation | "." IDENTIFIER invocation* )? ;
 
 primary        → LITERAL | VALUE_TOKEN | IDENTIFIER | "(" expression ")" ;
