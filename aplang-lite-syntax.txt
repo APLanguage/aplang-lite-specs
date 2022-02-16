@@ -8,7 +8,7 @@ var_decl       → "var" IDENTIFIER  ( ":" type      )? ( "=" expression )? "\n"
 use_decl       → "use" IDENTIFIER  ( "." IDENTIFIER)* ( "." "*" | "as" IDENTIFIER)? "\n" ;
 
 statement      → for_stmt | return_stmt | break_stmt | while_stmt | var_decl | if_stmt | block | exp_stmt ;
-for_stmt       → "for" "(" IDENTIFIER ":" expression ")" statement ;
+for_stmt       → "for" "(" IDENTIFIER ":" type ":" expression ")" statement ;
 return_stmt    → "return" expression? "\n" ;
 break_stmt     → "break" "\n" ;
 while_stmt     → "while" "(" expression ")" statement ;
@@ -26,9 +26,9 @@ comparison     → term        ( ( ">"  | ">=" | "<" | "<=" ) term              
 term           → factor      ( ( "-"  | "+"               ) factor                     )* ;
 factor         → bit_op      ( ( "/"  | "*"  | "**" | "%" ) bit_op                     )* ;
 bit_op         → unary_left  ( ( "|"  | "^"  | "&"  | ">>" | "<<" | ">>>" ) unary_left )* ;
-unary_left     →               ( "!"  | "~"  ) unary_left | call  ;
+unary_left     →               ( "!"  | "~"  | "-" ) unary_left | call  ;
 oop            → call ( "as" | "is" ) type;
-call           → primary invocation? ( invocation | "." IDENTIFIER invocation* )? ;
+call           → ( primary | IDENTIFIER func_args?) ("." IDENTIFIER func_args? ) ;
 
 primary        → LITERAL | VALUE_TOKEN | IDENTIFIER | "(" expression ")" ;
 
@@ -38,8 +38,7 @@ type           → path ; // Generics ??
 
 path           → IDENTIFIER ( "." IDENTIFIER)* ;
 
-invocation     → "(" (expression ( "," expression )*)? ")"
-               | "[" expression "]"
+func_args      → "(" (expression ( "," expression )*)? ")"
 
 VALUE_TOKEN    → "null" | "this" | "super"
 LITERAL        → NUMBER | STRING | CHAR ;

@@ -34,6 +34,7 @@ ref_info {
   u1             name_len;
   char           name[name_len];
   [
+    Package {}
     Class {}
     Field {
       [u2        type_ref;]
@@ -50,6 +51,7 @@ ref_info {
 refinfobyte DDDD RPTT {
   DDDD 4type (Field: Type, Method: Return type)
   R {
+    0 - Package
     0 - Class
     1 - Field
     0/1 - Method
@@ -59,9 +61,10 @@ refinfobyte DDDD RPTT {
     1 - Has Parent
   }
   TT {
-    00 - Class
-    01 - Field
-    10 - Method
+    00 - Package
+    01 - Class
+    10 - Field
+    11 - Method
   }
 }
 ```
@@ -80,6 +83,16 @@ class_info {
 }
 ```
 ```
+finfobyte DDDD --VV {
+  DDDD - 4type
+  --
+  VV [
+    00 - code
+    01 - constant_pool_index
+    10 - direct value
+  ]
+}
+
 field_info {
   u1             finfobyte;
   u1             name_len;
@@ -102,6 +115,12 @@ field_info {
 }
 ```
 ```
+minfobyte DDDD R--- {
+  DDDD - 4type
+  R { has return }
+  ---
+}
+
 method_info {
   u1             minfobyte;
   u1             name_len
@@ -113,59 +132,32 @@ method_info {
   u1             code[code_length]
 }
 ```
-```
-finfobyte DDDD --VV {
-  DDDD - 4type
-  --
-  VV [
-    00 - code
-    01 - constant_pool_index
-    10 - direct value
-  ]
-}
-```
-```
-minfobyte DDDD R--- {
-  DDDD - 4type
-  R { has return }
-  ---
-}
-```
+
 ```
 4type [ 
-  0000 - obj
-  0001 - u8
-  0010 - u16
-  0011 - u32
-  0100 - u64
-  0101 - i8
-  0110 - i16
-  0111 - i32
-  1000 - i64
-  1001 - float
-  1010 - double
+  0000 - objref
+  0001 - i8
+  0010 - i16
+  0011 - i32
+  0100 - i64
+  0101 - f32
+  0110 - f64
 ]
 ```
-
-
-
-type_id:
-  0 - Signed byte
-  1 - Unsigned byte
-  2 - Signed Integer
-  3 - Unsigned Integer
-  4 - Signed Big Int
-  5 - Unsigned Big Int
-  6 - Floating Point
-  7 - Big Floating Point
-  8 - Boolean
-  9 - Object
 ```
 cp_info {
-  // u1               constant_type;
-  u4               bytes_len;
+  u1               constant_type;
+  [u4               bytes_len;]
   u1               bytes[bytes_len];
 }
+constant_type:
+  000 - int 8 bit
+  001 - int 16 bit
+  010 - int 32 bit
+  011 - int 64 bit
+  100 - float
+  101 - double
+  110 - UTF8
 ```
 
 ## Bytecode and Operations
@@ -199,32 +191,36 @@ If T == 0 or function has no return value, X can be used for general purpose and
 PPPP WCCC XXXX XXXX
 P: Instruction Id
 C: Condition
-X: Signed 8-16bit location.
+X: Signed 8-16bit offset.
 W: If set, next byte expands the index from 8 to 16 bit.
 ```
 1 0 -1
-0 0 0 = NOP // TODO: find purpose
+0 0 0 = unconditional absolute jump
 0 0 1 = <
 0 1 0 = ==
 0 1 1 = <=
 1 0 0 = >
 1 0 1 = !=
 1 1 0 = >=
-1 1 1 = unconditional jump
+1 1 1 = unconditional relative jump
 ```
 > Note: If pops the value.
 
 ### Unary
 
-#### Inversion
-PPPP T-DD XXXX XXXX
+#### Inversion, Negation
+PPPP MDDD
 P: Instruction Id
-T: Target: Stack(0)/Register(1)
-DD:
-  00 - byte
-  01 - int
-  10 - big int
-  11 - boolean // a boolean is a byte which has either 1 (true) or 0 (false) as value.
+M: Mode: Inversion(0)/Negation(1)
+X: Register-Index
+DDD:
+  000 - 8 bit int
+  001 - 16 bit int
+  010 - 32 bit int
+  011 - 64 bit int
+  100 - 32 bit float
+  101 - 64 bit float
+  110 - boolean // a boolean is a byte which has either 1 (true) or 0 (false) as value, effectivly (~b & 0b1).
 
 #### Conversion
 
@@ -289,6 +285,7 @@ X can have the following values:
 11001 OP_CMP : <=
 11010 OP_CMP : >
 11011 OP_CMP : >=
+11100 OP_CMP : <=>
 ```
 
 ### Load from/Store to Register
@@ -306,44 +303,34 @@ Store: Takes from the stack and puts into a register
 
 GET, PUT
 
-PPPP MWR- XXXX XXXX
+PPPP MWRV XXXX XXXX
 P: Instruction Id
 M: Mode : Get(0)/Put(1)
 W: If set, next byte expands the index from 8 to 16 bit.
 R: Target: Stack(0)/Register(1), if set, next byte (after index) decide register index.
+V: Reversed: If this Field is virtual and this is a PUT, the obj ref will be poped first, then the actual value
 X: Index
 Load: Takes from the field and push on the stack/register.
 Store: Takes from the stack/register and puts into the field.
 
 ### Stack
 
-PUSH, POP, DUP, SWAP
+POP, DUP, SWAP
 
 POP:
   PPPP XXXX
   P: Instruction Id
-  XXXX + 1: Bytes to pop from stack.
-
-PUSH (for primitive Types, otherwise use LOAD):
-  PPPP XXXX
-  PPPP: Instruction Id
-  D: If to push twice
-  XXX + 1: Bytes to push on the stack. 
-  Next bytes will be taken.
+  XXXX + 1: entries to pop from stack.
 
 DUP:
-  PPPP XXXX
+  PPPP AABB
   PPPP: Instruction Id
-  XXXX + 1: Bytes to dup from the stack.
-
-  ..., bytes[XXXX + 1] -> ..., bytes[XXXX + 1], bytes[XXXX + 1]
+  AA + 1: Entries to dup from the top of the stack.
+  BB: How deep under the top. (0 -> dup on top)
 
 SWAP:
-  PPPP XXXX
+  PPPP ----
   PPPP: Instruction Id
-  XXXX + 1: Bytes to swap in stack.
-
-  ..., a_bytes[XXXX + 1], b_bytes[XXXX + 1] -> ..., b_bytes[XXXX + 1], a_bytes[XXXX + 1]
 
 ### Miscellaneous
 
@@ -351,21 +338,51 @@ NOP
 PPPP ----
 ----: Should be ignored by the VM: debuggers or tools can use these bits for general purpose.
 
-## Overview
+DICT : Direct Int Constant
+PPPP TTDD
+TT - Target: Stack(0)/Register(1)/Field(2)/Field-Wide(3)
+DD -
+  00 - 8 bit
+  01 - 16 bit
+  10 - 32 bit
+  11 - 64 bit
+
+DFCT : Direct Float Constant
+PPPP TT-D
+TT - Target: Stack(0)/Register(1)/Field(2)/Field-Wide(3)
+D -
+  0 - 32 bit float
+  1 - 64 bit float
+
+ICST : Indirect Constant - pushes the value in the constant pool onto the stack
+PPPP TT-W
+TT - Target: Stack(0)/Register(1)/Field(2)/Field-Wide(3)
+W - one byte more for the index
+
+OOP
+PPPP W-AA XXXX XXXX
+A: Cast(0)/Check(1)/CheckNot(2)
+W: Wide: If it should be a 16bit index
+
+On check, it pushes the result on the stack
+
+## Overview  
 
 PPPP |  
------------------------
-0000 | ----           NOP
-0001 | SDW- XXXX XXXX CALL
-0010 | T--- XXXX XXXX RETU
-0011 | WCCC XXXX XXXX IF
-0100 | T-DD XXXX XXXX INV
-0101 | T--- AAAA BBBB CONV
-0110 | ABTC CCCX XXXX MATH
-0111 | M--- XXXX XXXX LORE
-1000 | MWR- XXXX XXXX GUT
-1001 | XXXX           PUSH
-1010 | XXXX           POP
-1011 | XXXX           DUP
-1100 | XXXX           SWAP
-
+-----------------------  
+0000 | ----           NOP   
+0001 | SDW- XXXX XXXX CALL  
+0010 | T--- XXXX XXXX RETU  
+0011 | WCCC XXXX XXXX IF    
+0100 | T-DD           INV   
+0101 | T--- AAAA BBBB CONV  
+0110 | ABTC CCCX XXXX MATH  
+0111 | M--- XXXX XXXX LORE  
+1000 | MWRV XXXX XXXX GUT   
+1001 | W--A XXXX XXXX OOP   
+1010 | XXXX           POP   
+1011 | AABB           DUP   
+1100 | ----           SWAP  
+1101 | TTDD           DICT  
+1110 | TT-D           DFST  
+1111 | TT-W           ICST  
